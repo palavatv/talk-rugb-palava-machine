@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+
+    <title>PalavaMachine: WebRTC Signaling powered by Ruby</title>
+
+    <meta name="description" content="PalavaMachine: WebRTC Signaling powered by Ruby">
+    <meta name="author" content="Jan Lelis / Marius Melzer">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="css/reveal.min.css">
+    <link rel="stylesheet" href="css/theme/default.css" id="theme">
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <script>
+      document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+    </script>
+
+    <style>
+      #gum-video {
+        height: 1000px;
+        background: black;
+        box-shadow: 0px 0px 20px #333;
+      }
+      pre code {
+        font-size: 21pt;
+        line-height: 25pt;
+        background: #111;
+      }
+      pre .xml .javascript {
+        opacity: 1;
+        color: #fff;
+      }
+    </style>
+
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+    <div class="reveal">
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+        <section>
+          <section>
+            <h1>PalavaMachine</h1>
+            <h3>WebRTC Signaling powered by Ruby</h3>
+            <br/><br/><br/><br/>
+
+            <p>Ruby User Group Berlin | October 10, 2013</p>
+          </section>
+
+          <section>
+            <h2>Jan Lelis | Marius Melzer</h2>
+            <p><a href="https://twitter.com/happycode">@happycode |</a> <a href="https://twitter.com/faraoso">@faraoso</a></p>
+          </section>
+        </section>
+
+        <section>
+          <h2>What is WebRTC?</h2><br/>
+          <h2>What is palava?</h2><br/>
+          <h2>What is Signaling?</h2><br/>
+          <h2>What is PalavaMachine?</h2>
+
+          <aside class="notes">
+            Oh hey, these are some notes. They'll be hidden in your presentation, but you can see them if you open the speaker notes window (hit 's' on your keyboard).
+          </aside>
+        </section>
+
+        <section>
+          <section>
+            <img src="images/webrtc.png" style="background:white; padding: 20px" />
+            <br/><br/>
+            <h2>Upcoming Standard</h2>
+            <h3>Internet Engineering Task Force</h3>
+            <h3>World Wide Web Consortium</h3>
+          </section>
+
+          <section>
+            <img src="images/webrtc-components.png" />
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>getUserMedia</h2>
+          </section>
+
+          <section>
+            <pre><code data-trim contenteditable>
+&lt;video id="gum-video" autoplay="autoplay"&gt;
+
+&lt;script&gt;
+  navigator.webkitGetUserMedia(
+    {video: true, audio: false},
+    function(stream) {
+      document.getElementById('gum-video').src =
+          webkitURL.createObjectURL(stream);
+    }
+  );
+&lt;/script&gt;
+            </code></pre>
+          </section>
+
+          <section data-state="gum-demo">
+            <video id="gum-video" autoplay="autoplay">
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>Signaling</h2>
+          </section>
+          <section>
+            <img src="images/signaling-server.png">
+          </section>
+          <section>
+            <img src="images/join.png">
+          </section>
+          <section>
+            <img src="images/offer-answer.png">
+          </section>
+          <section>
+            <img src="images/stun1.png">
+          </section>
+          <section>
+            <img src="images/stun2.png">
+          </section>
+          <section>
+            <img src="images/peerconnection.png">
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>PalavaMachine</h2>
+          </section>
+
+          <section>
+            <h2>PalavaMachine</h2>
+
+            <p>Signaling server written in Ruby</p>
+            <p class="fragment">Talks WebSockets via <code>em-websockets</code></p>
+            <p class="fragment">Allows client to join a room to find other clients</p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h3>Signaling Protocol</h3>
+            <p class="fragment">A few defined JSON messages</p>
+          </section>
+
+          <section>
+            <h3>Client → Server</h3><br/>
+            <p><code>join_room(room_id, status)</code></p>
+            <p><code>send_to_peer(peer_id, data)</code></p>
+            <p><code>update_status(status)</code></p>
+          </section>
+
+          <section>
+            <h3>Server → Client</h3><br/>
+            <p><code>joined_room(me, peers)</code></p>
+            <p><code>peer_updated_status(peer_id, peer_status)</code></p>
+            <p><code>error(id, message)</code></p>
+            <p><code>shutdown(seconds)</code></p>
+          </section>
+
+          <section>
+            <h3>Client → Client</h3>
+            <h4>via <code>send_to_peer</code></h4><br/>
+            <p><code>offer(sdp)</code></p>
+            <p><code>answer(sdp)</code></p>
+            <p><code>ice_candidate(...)</code></p>
+          </section>
+        </section>
+        <section>
+          <section>
+            <h3>EventMachine Reactor</h3>
+          </section>
+
+          <section>
+            <pre><code data-trim contenteditable class="ruby">
+  EM.run{
+  em_init
+  trap(:TERM){ em_sigterm }
+  trap(:INT){ em_sigint }
+
+  EM::WebSocket.run(options){ |ws|
+    ws.onopen{ |handshake|  ws_open(ws, handshake) }
+    ws.onmessage{ |message| ws_message(ws, message) }
+    ws.onclose{ |why|       ws_close(ws, why) }
+    ws.onerror{ |error|     ws_error(ws, error) }
+    EM.error_handler{ |e|   em_error(e) }
+  }
+}
+            </code></pre>
+          </section>
+
+          <section>
+            <pre><code data-trim contenteditable class="ruby">
+def ws_message(ws, message)
+  ws_message_action(ws, ws_message_parse(ws, message))
+rescue MessageParsingError, MessageError => e
+  send_error(ws, e)
+end
+            </code></pre><br/>
+
+            <pre><code data-trim contenteditable class="ruby">
+def ws_message_parse(ws, message)
+  connection_id = manager.connections.get_connection_id(ws) or
+      raise MessageError.new(ws), 'unknown connection'
+  ClientMessage.new(message, connection_id)
+end
+            </code></pre><br/>
+
+            <pre><code data-trim contenteditable class="ruby">
+def ws_message_action(ws, message_event)
+  manager.debug "#{message_event.connection_id} &lt;#{message_event.name}&gt;"
+  manager.public_send(
+    message_event.name,
+    message_event.connection_id,
+    *message_event.arguments
+  )
+end
+            </code></pre>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h3>Redis Store</h3>
+          </section>
+
+          <section>
+            <h3>Redis Store</h3>
+            <p>Stores in which room a connection resides</p>
+            <p class="fragment">Stores a connection ids per open socket</p>
+            <p class="fragment">Uses asynchronous <code>em-hiredis</code> driver</p>
+          </section>
+
+          <section>
+            <h4>Join Room Example / Ruby Land</h4>
+            <pre><code data-trim contenteditable class="ruby">
+def join_room(connection_id, room_id, status)
+  return_error connection_id, 'no room id given' if !room_id
+  return_error connection_id, 'room id too long' if room_id.size > 50
+  # ...
+  info "#{connection_id} joins ##{room_id[0..10]}... #{status}"
+  script_join_room(connection_id, room_id, status){ |members|
+    # ...
+            </code></pre>
+            <pre><code data-trim contenteditable class="ruby">
+def script_join_room(connection_id, room_id, status, &amp;block)
+  @redis.eval \
+    SCRIPT_JOIN_ROOM,
+    4,
+    "store:room:members:#{room_id}",
+    "store:room:peak_members:#{room_id}",
+    "store:connection:joined:#{connection_id}",
+    "store:connection:room:#{connection_id}",
+    connection_id,
+    PAYLOAD_NEW_PEER[connection_id, status],
+    Time.now.getutc.to_i,
+    room_id,
+    &block
+end
+            </code></pre>
+          </section>
+
+          <section>
+            <h4>Join Room Example / Lua Land</h4>
+            <pre><code data-trim contenteditable class="lua">
+local members = redis.call('smembers', KEYS[1])
+local count = 0
+for _, peer_id in pairs(members) do
+  redis.call('publish', "ps:connection:" .. peer_id, ARGV[2])
+  count = count + 1
+end
+redis.call('sadd', KEYS[1], ARGV[1])
+if count == 0 or tonumber(redis.call('get', KEYS[2])) &lt;= count then
+  redis.call('set', KEYS[2], count + 1)
+end
+redis.call('set', KEYS[3], ARGV[3])
+redis.call('set', KEYS[4], ARGV[4])
+return members
+            </code></pre>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h3>Inter Machine Communication</h3>
+          </section>
+
+          <section>
+            <h3>Inter Machine Communication</h3>
+            <p>Using redis' PubSub feature</p>
+            <p class="fragment">Allows for multiple EM socket servers running simultanously</p>
+            <p class="fragment">Every socket connection listens on its own redis queue</p>
+          </section>
+
+          <section>
+            <h4>Redis PubSub</h4>
+            <pre><code data-trim contenteditable class="ruby">
+def announce_connection(ws)
+  connection_id = @connections.register_connection(ws)
+  info "#{connection_id} &lt;open&gt;"
+
+  @subscriber.subscribe "ps:connection:#{connection_id}" do |payload|
+    ws.send_text(payload)
+  end
+end
+            </pre></code>
+            <pre><code data-trim contenteditable class="ruby">
+# ...
+
+unless %w[offer answer ice_candidate].include? data['event']
+  return_error connection_id, 'event not allowed'
+end
+
+@publisher.publish "ps:connection:#{peer_id}",
+    (data || {}).merge("sender_id" => connection_id).to_json
+          </pre></code>
+          </section>
+        </section>
+
+        <section>
+          <h3>Undocumented Bonus Feauters</h3>
+          <p>Extendable Plugin Architecture</p>
+          <p>General Usage Stats</p>
+        </section>
+
+        <section>
+          <h2>Palava Demo</h2>
+          <a href="https://palava.tv">https://palava.tv</a>
+        </section>
+
+        <section>
+          <h2>Alternatives</h2>
+          <h3>All written in node.js</h3>
+          <p>signalmaster</p>
+          <p>webrtc.io</p>
+          <p>together.js hub</p>
+          <p>peerjs server</p>
+        </section>
+
+        <section>
+          <h2>Palava as a non-profit organization</h2>
+        </section>
+
+        <section>
+          <section>
+            <h2>Thank you | Find the Code at</h2>
+            <h3><a href="https://github.com/palavatv/palava-machine" style="white-space:nowrap">github.com/palavatv/palava-machine</a></h3>
+          </section>
+
+          <section>
+            <h3>One more thing</h3>
+            <h2><a href="http://signaling.io">signaling.io</a></h2>
+            <p>We are working on a webrtc signaling service. You might want to check it out if you consider using webrtc in a future project.</p>
+          </section>
+
+          <section>
+            <h2>Thank you | Find the Code at</h2>
+            <h3><a href="https://github.com/palavatv/palava-machine" style="white-space:nowrap">github.com/palavatv/palava-machine</a></h3>
+            <br/><p>More palava Information</p>
+            <p><a href="https://twitter.com/palavatv">@palavatv | </a> <a href="https://blog.palava.tv">blog.palava.tv</a></p>
+            <br/><p>Signaling Service</p>
+            <p><a href="http://signaling.io">http://signaling.io</p>
+          </section>
+        </section>
+      </div>
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.min.js"></script>
+
+    <script>
+      // Full list of configuration options available here:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+
+        theme: Reveal.getQueryHash().theme || 'beige', // available themes are in /css/theme
+        transition: Reveal.getQueryHash().transition || 'concave', // default/cube/page/concave/zoom/linear/fade/none
+
+        // Optional libraries used to extend on reveal.js
+        dependencies: [
+          { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+          { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+        ]
+      });
+
+      Reveal.addEventListener('gum-demo', function(){
+        navigator.webkitGetUserMedia(
+          {video: true, audio: false},
+          function(stream) {
+            document.getElementById('gum-video').src = webkitURL.createObjectURL(stream);
+          }
+        );
+      });
+    </script>
+  </body>
+</html>
